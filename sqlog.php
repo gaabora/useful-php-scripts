@@ -1,5 +1,8 @@
 <?php
 
+// usage
+//define('TMP_SQLOGFILE', '1.db'); include('log.php');
+
 //////////////////////////////////////////////////////////////////////////////////////
 register_shutdown_function(function() {
 	global $_TMP_sqlite;
