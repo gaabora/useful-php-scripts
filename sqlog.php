@@ -1,8 +1,8 @@
 <?php
-
-// usage
-//define('TMP_SQLOGFILE', '1.db'); include('log.php');
-
+//////////////////////////////////////////////////////////////////////////////////////
+// version 20180814
+// usage:
+// define('TMP_SQLOGFILE', '1.db'); include('log.php');
 //////////////////////////////////////////////////////////////////////////////////////
 register_shutdown_function(function() {
 	global $_TMP_sqlite;
@@ -20,7 +20,6 @@ register_shutdown_function(function() {
 	;
 });
 session_start();
-
 if (!defined('TMP_SQLOGFILE')) define('TMP_SQLOGFILE', $_SERVER['DOCUMENT_ROOT'].'/../private/logs/access.log.db');
 if (!file_exists(dirname(TMP_SQLOGFILE)) && !is_dir(dirname(TMP_SQLOGFILE))) mkdir(dirname(TMP_SQLOGFILE));
 $_TMP_sqlite = new PDO('sqlite:'.TMP_SQLOGFILE);
@@ -37,25 +36,30 @@ try {
 	,`host`	TEXT
 	,`path`	TEXT
 	,`query`	TEXT
-	,`reqh`	TEXT
+	,`raw`	TEXT
 	,`req`	TEXT
-	,`resh`	TEXT
+	,`reqh`	TEXT
 	,`res`	TEXT
+	,`resh`	TEXT
 	,`err`	TEXT
 	,`sessid`	TEXT
 	,`ua`	TEXT
 );
 ');
 }
-$_TMP_input = file_get_contents("php://input");
+$_TMP_raw = 'null';
+ini_set("allow_url_fopen", true);
+$_TMP_input = file_get_contents('php://input');
 if ($_TMP_input) {
+	$_TMP_raw = $_TMP_input;
 	$_TMP_input_d = json_decode($_TMP_input,true);
 	if ($_TMP_input_d!==null) $_TMP_input = json_encode($_TMP_input_d,JSON_UNESCAPED_UNICODE+JSON_UNESCAPED_SLASHES);
-} elseif($_POST) {
+}
+if($_POST) {
 	$_TMP_input = json_encode($_POST,JSON_UNESCAPED_UNICODE+JSON_UNESCAPED_SLASHES);
 }
 $_TMP_sqlite
-	->prepare('INSERT INTO `log`(`date`,`at`,`ip`,`xip`,`ua`,`host`,`path`,`query`,`sessid`,`reqh`,`req`) VALUES (:date,:at,:ip,:xip,:ua,:host,:path,:query,:sessid,:reqh,:req)')
+	->prepare('INSERT INTO `log`(`date`,`at`,`ip`,`xip`,`ua`,`host`,`path`,`query`,`sessid`,`reqh`,`raw`,`req`) VALUES (:date,:at,:ip,:xip,:ua,:host,:path,:query,:sessid,:reqh,:raw,:req)')
 	->execute([
 		'at' => $_SERVER['REQUEST_TIME_FLOAT']
 		,'date'=>date('Y-m-d H:i:s',$_SERVER['REQUEST_TIME_FLOAT'])
@@ -66,6 +70,7 @@ $_TMP_sqlite
 		,'path' => strtok($_SERVER["REQUEST_URI"],'?')
 		,'query' => $_SERVER['QUERY_STRING']
 		,'sessid' => session_id()
+		,'raw' => $_TMP_raw
 		,'req' => $_TMP_input
 		,'reqh' => json_encode(getallheaders(),JSON_UNESCAPED_UNICODE+JSON_UNESCAPED_SLASHES)
 	])
